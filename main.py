@@ -1,8 +1,10 @@
 
+"""
+    Mohammad Eftekhari
+"""
+
 from random import randint
 from math import inf
-from queue import Queue
-
 
 class Message:
     messageID: int = 0
@@ -22,30 +24,9 @@ class Message:
         print("    Level=%s, Val=%s, Key=%d" % (self.level, self.val, self.key))
 
 
-class Messenger:
-
-    def __init__(self, processes):
-        self.processes = processes
-        self.q = Queue()
-
-    def send_message(self, message: Message):
-        self.q.put(message)
-
-    def has_message(self):
-        return not self.q.empty()
-
-    def deliver(self):
-        if not self.has_message():
-            return
-        message = self.q.get()
-        receiver = message.receiver
-        message.print()
-        self.processes[receiver].trans(message)
-
-
 class Process:
 
-    def __init__(self, n, r, pid, decision, messenger):
+    def __init__(self, n, r, pid, decision, processes):
         """Initialize dog object."""
         self.n = n
         self.r = r
@@ -53,7 +34,8 @@ class Process:
         self.rounds = 0
         self.decision = -1
         self.key = -1
-        self.messenger = messenger
+        self.processes = processes
+        self.messages = []
 
         self.val = [-1] * (n+1)
         self.val[pid] = decision
@@ -69,33 +51,44 @@ class Process:
         for i in range(1, self.n+1):
             if i != self.pid:
                 message = Message(self.pid, i, self.level, self.val, self.key)
-                self.messenger.send_message(message)
+                self.processes[i].get_message(message)
 
-    def trans(self, message: Message):
+    def get_message(self, message: Message):
+        if randint(1, 100) > (100 - MESSAGE_DELIVERY_PERCENTAGE):
+            message.print()
+            self.messages.append(message)
+        else:
+            print("\n- Not Delivered : %d to %d" % (message.sender, message.receiver))
+            global MessagesNotDelivered
+            MessagesNotDelivered = MessagesNotDelivered + 1
 
-        # ignore extra messages
-        if self.rounds == self.r:
-            print("!IGNORED")
-            return
+    def trans(self):
 
         # update rounds
         self.rounds = self.rounds + 1
 
         # update key
-        if message.key != -1:
-            self.key = message.key
+        for msg in self.messages:
+            if msg.key != -1:
+                self.key = msg.key
 
         # update val and level
+        for msg in self.messages:
+            for i in range(1, self.n+1):
+                if i == self.pid:
+                    continue
+                if msg.val[i] != -1:
+                    self.val[i] = msg.val[i]
+                if msg.level[i] != self.level[i]:
+                    self.level[i] = max(self.level[i], msg.level[i])
+        self.messages.clear()
+
+        # update my own level
         mn = inf
         for i in range(1, self.n+1):
             if i == self.pid:
                 continue
-            if message.val[i] != -1:
-                self.val[i] = message.val[i]
-            if message.level[i] != self.level[i]:
-                self.level[i] = message.level[i]
-            mn = min( mn , message.level[i] ) + 1
-
+            mn = min(mn, self.level[i]) + 1
         self.level[self.pid] = mn
 
         # is last round ?
@@ -111,9 +104,6 @@ class Process:
                 self.decision = 1
             else:
                 self.decision = 0
-
-        elif self.rounds < self.r:
-            self.msgs()
 
     def print_decision(self):
         print("Process %d decided on : %d" % (self.pid, self.decision))
@@ -133,18 +123,17 @@ def main(n, r):
 
     # create processes
     processes = [None] * (n+1)
-    messenger = Messenger(processes)
     for i in range(1, n+1):
-        processes[i] = Process(n, r, i, 1, messenger)
+        processes[i] = Process(n, r, i, 1, processes)
         processes[i].rand()
 
-    # initial message queue
-    for i in range(1, n+1):
-        processes[i].msgs()
-
     # go for it !
-    while messenger.has_message():
-        messenger.deliver()
+    for round in range(1, r+1):
+        print("\n\n--- Round %d" % round)
+        for i in range(1, n+1):
+            processes[i].msgs()
+        for i in range(1, n+1):
+            processes[i].trans()
 
     # print status of the processes
     for i in range(1, n+1):
@@ -155,7 +144,10 @@ def main(n, r):
     for i in range(1, n+1):
         processes[i].print_decision()
 
+    print("\nMessagesNotDelivered : %d out of %d" % (MessagesNotDelivered, r*n*(n-1)))
 
 
-main(3, 25)
+MESSAGE_DELIVERY_PERCENTAGE = 95
+MessagesNotDelivered = 0
+main(5, 7)
 
