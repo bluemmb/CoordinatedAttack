@@ -126,6 +126,22 @@ class Process:
         logger.debug("    Rounds = %s" % self.rounds)
 
 
+class Data:
+
+    def __init__(self, n, r):
+        self.n = n
+        self.r = r
+        self.d = [-1] * 101
+
+    def saveplot(self):
+        fig, ax = plt.subplots()
+        ax.plot(range(0,101), self.d)
+        ax.set(xlabel='delivery percent', ylabel='corrects',
+               title="nodes = %d, rounds = %d" % (self.n, self.r))
+        ax.grid()
+        fig.savefig("plots/n%d-r%d.png" % (self.n, self.r))
+
+
 def is_right(processes: [Process]):
 
     should_be = 1
@@ -182,8 +198,9 @@ logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.WARNING)
 
 n = 3
-data = []
+all = []
 for r in range(1,2):
+    data = Data(n, r)
     for d in range(0,101,1):
         MESSAGE_DELIVERY_PERCENTAGE = d
         correct = 0
@@ -194,20 +211,6 @@ for r in range(1,2):
             logger.info("r = %d, d = %d, ans = %d" % (r, d, ans))
             correct = correct + ans
         print("n = %d, r = %d, d = %d, correct = %d out of %d" % (n, r, d, correct, iteration))
-        data.append((n,r,d,correct))
-
-with open('output.csv', 'w') as f:
-    csv_out = csv.writer(f)
-    csv_out.writerow(['nodes', 'rounds', 'delivery_percent', 'correct'])
-    for row in data:
-        csv_out.writerow(row)
-
-fig, ax = plt.subplots()
-ax.plot([i[2] for i in data], [i[3] for i in data])
-
-ax.set(xlabel='delivery percent', ylabel='corrects',
-       title='nodes = 3, rounds = 1')
-ax.grid()
-
-fig.savefig("test.png")
-plt.show()
+        data.d[d] = correct
+    data.saveplot()
+    all.append(data)
