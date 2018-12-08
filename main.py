@@ -7,6 +7,7 @@ from random import randint
 from math import inf
 import logging
 import csv
+import matplotlib.pyplot as plt
 
 
 class Message:
@@ -182,8 +183,8 @@ logger.setLevel(logging.WARNING)
 
 n = 3
 data = []
-for r in range(1,10):
-    for d in range(1,101,1):
+for r in range(1,2):
+    for d in range(0,101,1):
         MESSAGE_DELIVERY_PERCENTAGE = d
         correct = 0
         iteration = 1000
@@ -200,3 +201,13 @@ with open('output.csv', 'w') as f:
     csv_out.writerow(['nodes', 'rounds', 'delivery_percent', 'correct'])
     for row in data:
         csv_out.writerow(row)
+
+fig, ax = plt.subplots()
+ax.plot([i[2] for i in data], [i[3] for i in data])
+
+ax.set(xlabel='delivery percent', ylabel='corrects',
+       title='nodes = 3, rounds = 1')
+ax.grid()
+
+fig.savefig("test.png")
+plt.show()
