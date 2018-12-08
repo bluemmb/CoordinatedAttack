@@ -5,6 +5,7 @@
 
 from random import randint
 from math import inf
+import logging
 
 
 class Message:
@@ -20,9 +21,12 @@ class Message:
         self.key = key
 
     def print(self):
-        print()
-        print("Message %d from %d to %d" % (self.messageID, self.sender, self.receiver))
-        print("    Level=%s, Val=%s, Key=%d" % (self.level, self.val, self.key))
+        logger.debug("")
+        logger.debug("Message %d from %d to %d" % (self.messageID, self.sender, self.receiver))
+        logger.debug("    Level=%s, Val=%s, Key=%d" % (self.level, self.val, self.key))
+
+    def print_not_delivered(self):
+        logger.debug("\n- Not Delivered : %d to %d" % (self.sender, self.receiver))
 
 
 class Process:
@@ -59,7 +63,7 @@ class Process:
             message.print()
             self.messages.append(message)
         else:
-            print("\n- Not Delivered : %d to %d" % (message.sender, message.receiver))
+            message.print_not_delivered()
             global MessagesNotDelivered
             MessagesNotDelivered = MessagesNotDelivered + 1
 
@@ -107,17 +111,17 @@ class Process:
                 self.decision = 0
 
     def print_decision(self):
-        print("Process %d decided on : %d" % (self.pid, self.decision))
+        logger.debug("Process %d decided on : %d" % (self.pid, self.decision))
 
     def print_status(self):
-        print()
-        print("Process %d status : " % self.pid)
-        print("  MyLevel  = %s" % self.level[self.pid])
-        print("    Level  = %s" % self.level)
-        print("    Val    = %s" % self.val)
-        print("    Key    = %s" % self.key)
-        print("    Dec    = %s" % self.decision)
-        print("    Rounds = %s" % self.rounds)
+        logger.debug("")
+        logger.debug("Process %d status : " % self.pid)
+        logger.debug("  MyLevel  = %s" % self.level[self.pid])
+        logger.debug("    Level  = %s" % self.level)
+        logger.debug("    Val    = %s" % self.val)
+        logger.debug("    Key    = %s" % self.key)
+        logger.debug("    Dec    = %s" % self.decision)
+        logger.debug("    Rounds = %s" % self.rounds)
 
 
 def is_right(processes: [Process]):
@@ -147,7 +151,7 @@ def main(n, r):
 
     # go for it !
     for round in range(1, r+1):
-        print("\n\n--- Round %d" % round)
+        logger.debug("\n\n--- Round %d" % round)
         for i in range(1, n+1):
             processes[i].msgs()
         for i in range(1, n+1):
@@ -158,24 +162,34 @@ def main(n, r):
         processes[i].print_status()
 
     # print decision of the process in one place
-    print()
     for i in range(1, n+1):
         processes[i].print_decision()
 
-    print("\nMessagesNotDelivered : %d out of %d" % (MessagesNotDelivered, r*n*(n-1)))
+    logger.info("\nMessagesNotDelivered : %d out of %d" % (MessagesNotDelivered, r*n*(n-1)))
 
     return is_right(processes)
 
 
+# Initial Values
 MESSAGE_DELIVERY_PERCENTAGE = 95
 MessagesNotDelivered = 0
 
-n = 4
-for r in range(1,2):
-    for d in range(80,101,5):
+# Initialize logger class
+logger = logging.getLogger()
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.WARNING)
+
+n = 5
+for r in range(15,16):
+    for d in range(50,101,1):
         MESSAGE_DELIVERY_PERCENTAGE = d
-        MessagesNotDelivered = 0
-        ans = main(n, r)
-        print("r = %d, d = %d, ans = %d" % (r, d, ans))
+        correct = 0
+        iteration = 1000
+        for c in range(1, iteration+1):
+            MessagesNotDelivered = 0
+            ans = main(n, r)
+            logger.info("r = %d, d = %d, ans = %d" % (r, d, ans))
+            correct = correct + ans
+        print("n = %d, r = %d, d = %d, correct = %d out of %d" % (n, r, d, correct, iteration))
 
 
