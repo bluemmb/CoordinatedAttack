@@ -6,6 +6,7 @@
 from random import randint
 from math import inf
 
+
 class Message:
     messageID: int = 0
 
@@ -26,7 +27,7 @@ class Message:
 
 class Process:
 
-    def __init__(self, n, r, pid, decision, processes):
+    def __init__(self, n, r, pid, val, processes):
         """Initialize dog object."""
         self.n = n
         self.r = r
@@ -38,7 +39,7 @@ class Process:
         self.messages = []
 
         self.val = [-1] * (n+1)
-        self.val[pid] = decision
+        self.val[pid] = val
 
         self.level = [-1] * (n+1)
         self.level[pid] = 0
@@ -119,6 +120,23 @@ class Process:
         print("    Rounds = %s" % self.rounds)
 
 
+def is_right(processes: [Process]):
+
+    should_be = 1
+    for i in range(1, processes.__len__()):
+        if processes[i].val[i] == 0:
+            should_be = 0
+            break
+
+    it_is = 1
+    for i in range(1, processes.__len__()):
+        if processes[i].decision == 0:
+            it_is = 0
+            break
+
+    return should_be == it_is
+
+
 def main(n, r):
 
     # create processes
@@ -146,8 +164,18 @@ def main(n, r):
 
     print("\nMessagesNotDelivered : %d out of %d" % (MessagesNotDelivered, r*n*(n-1)))
 
+    return is_right(processes)
+
 
 MESSAGE_DELIVERY_PERCENTAGE = 95
 MessagesNotDelivered = 0
-main(5, 7)
+
+n = 4
+for r in range(1,2):
+    for d in range(80,101,5):
+        MESSAGE_DELIVERY_PERCENTAGE = d
+        MessagesNotDelivered = 0
+        ans = main(n, r)
+        print("r = %d, d = %d, ans = %d" % (r, d, ans))
+
 
