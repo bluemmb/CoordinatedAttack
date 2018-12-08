@@ -6,6 +6,7 @@
 from random import randint
 from math import inf
 import logging
+import csv
 
 
 class Message:
@@ -179,9 +180,10 @@ logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.WARNING)
 
-n = 5
-for r in range(15,16):
-    for d in range(50,101,1):
+n = 3
+data = []
+for r in range(1,10):
+    for d in range(1,101,1):
         MESSAGE_DELIVERY_PERCENTAGE = d
         correct = 0
         iteration = 1000
@@ -191,5 +193,10 @@ for r in range(15,16):
             logger.info("r = %d, d = %d, ans = %d" % (r, d, ans))
             correct = correct + ans
         print("n = %d, r = %d, d = %d, correct = %d out of %d" % (n, r, d, correct, iteration))
+        data.append((n,r,d,correct))
 
-
+with open('output.csv', 'w') as f:
+    csv_out = csv.writer(f)
+    csv_out.writerow(['nodes', 'rounds', 'delivery_percent', 'correct'])
+    for row in data:
+        csv_out.writerow(row)
