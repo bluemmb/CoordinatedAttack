@@ -6,7 +6,6 @@
 from random import randint
 from math import inf
 import logging
-import csv
 import matplotlib.pyplot as plt
 
 
@@ -20,12 +19,14 @@ class Message:
         self.receiver = receiver
         self.level = level.copy()
         self.val = val.copy()
-        self.key = key
+        self.key = None
+        if not(key is None):
+            self.key = key.copy()
 
     def print(self):
         logger.debug("")
         logger.debug("Message %d from %d to %d" % (self.messageID, self.sender, self.receiver))
-        logger.debug("    Level=%s, Val=%s, Key=%d" % (self.level, self.val, self.key))
+        logger.debug("    Level=%s, Val=%s, Key=%s" % (self.level, self.val, self.key))
 
     def print_not_delivered(self):
         logger.debug("\n- Not Delivered : %d to %d" % (self.sender, self.receiver))
@@ -40,7 +41,7 @@ class Process:
         self.pid = pid
         self.rounds = 0
         self.decision = -1
-        self.key = -1
+        self.key = None
         self.processes = processes
         self.messages = []
 
@@ -52,7 +53,9 @@ class Process:
 
     def rand(self):
         if self.pid == 1 and self.rounds == 0:
-            self.key = randint(1, self.r)
+            self.key = [0] * (self.r+1)
+            for i in range(1, self.r+1):
+                self.key[i] = randint(1, i)
 
     def msgs(self):
         for i in range(1, self.n+1):
@@ -66,8 +69,6 @@ class Process:
             self.messages.append(message)
         else:
             message.print_not_delivered()
-            global MessagesNotDelivered
-            MessagesNotDelivered = MessagesNotDelivered + 1
 
     def trans(self):
 
@@ -76,7 +77,7 @@ class Process:
 
         # update key
         for msg in self.messages:
-            if msg.key != -1:
+            if not(msg.key is None):
                 self.key = msg.key
 
         # update val and level
@@ -100,17 +101,19 @@ class Process:
 
         # is last round ?
         if self.rounds == self.r:
+            self.decision = self.make_decision()
 
-            agree = 1
-            for i in range(1, self.n+1):
-                if self.val[i] != 1:
-                    agree = 0
-                    break
+    def make_decision(self):
+        agree = 1
+        for i in range(1, self.n + 1):
+            if self.val[i] != 1:
+                agree = 0
+                break
 
-            if self.key != -1 and self.level[self.pid] >= self.key and agree:
-                self.decision = 1
-            else:
-                self.decision = 0
+        if not(self.key is None) and self.level[self.pid] >= self.key[self.rounds] and agree:
+            return 1
+        else:
+            return 0
 
     def print_decision(self):
         logger.debug("Process %d decided on : %d" % (self.pid, self.decision))
@@ -142,6 +145,10 @@ class Data:
         fig.savefig("plots/n%d-r%d.png" % (self.n, self.r))
 
 
+def nameof(n, r):
+    return "n%d-r%d" % (n, r)
+
+
 def is_right(processes: [Process]):
 
     should_be = 1
@@ -152,7 +159,7 @@ def is_right(processes: [Process]):
 
     it_is = 1
     for i in range(1, processes.__len__()):
-        if processes[i].decision == 0:
+        if processes[i].make_decision() == 0:
             it_is = 0
             break
 
@@ -160,6 +167,7 @@ def is_right(processes: [Process]):
 
 
 def main(n, r):
+    global data
 
     # create processes
     processes = [None] * (n+1)
@@ -174,6 +182,7 @@ def main(n, r):
             processes[i].msgs()
         for i in range(1, n+1):
             processes[i].trans()
+        data[nameof(n,round)].d[MESSAGE_DELIVERY_PERCENTAGE] += is_right(processes)
 
     # print status of the processes
     for i in range(1, n+1):
@@ -183,34 +192,27 @@ def main(n, r):
     for i in range(1, n+1):
         processes[i].print_decision()
 
-    logger.info("\nMessagesNotDelivered : %d out of %d" % (MessagesNotDelivered, r*n*(n-1)))
-
-    return is_right(processes)
-
 
 # Initial Values
-MESSAGE_DELIVERY_PERCENTAGE = 95
-MessagesNotDelivered = 0
+MESSAGE_DELIVERY_PERCENTAGE = -1
 
 # Initialize logger class
 logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 n = 3
-all = []
-for r in range(1,2):
-    data = Data(n, r)
-    for d in range(0,101,1):
-        MESSAGE_DELIVERY_PERCENTAGE = d
-        correct = 0
-        iteration = 1000
-        for c in range(1, iteration+1):
-            MessagesNotDelivered = 0
-            ans = main(n, r)
-            logger.info("r = %d, d = %d, ans = %d" % (r, d, ans))
-            correct = correct + ans
-        print("n = %d, r = %d, d = %d, correct = %d out of %d" % (n, r, d, correct, iteration))
-        data.d[d] = correct
-    data.saveplot()
-    all.append(data)
+r = 5
+data = {}
+for j in range(1,r+1):
+    data[nameof(n,j)] = Data(n, j)
+
+for d in range(0, 101, 1):
+    MESSAGE_DELIVERY_PERCENTAGE = d
+    iteration = 100
+    for c in range(1, iteration+1):
+        main(n, r)
+    logger.info("d = %d" % d)
+
+for key, value in data.items():
+    value.saveplot()
