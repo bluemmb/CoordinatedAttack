@@ -157,13 +157,13 @@ def is_right(processes: [Process]):
             should_be = 0
             break
 
-    it_is = 1
+    ok = 1
     for i in range(1, processes.__len__()):
-        if processes[i].make_decision() == 0:
-            it_is = 0
+        if processes[i].make_decision() != should_be:
+            ok = 0
             break
 
-    return should_be == it_is
+    return ok
 
 
 def main(n, r):
@@ -201,15 +201,15 @@ logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
-n = 3
-r = 5
+n = 5
+r = 20
 data = {}
 for j in range(1,r+1):
     data[nameof(n,j)] = Data(n, j)
 
 for d in range(0, 101, 1):
     MESSAGE_DELIVERY_PERCENTAGE = d
-    iteration = 100
+    iteration = 1000
     for c in range(1, iteration+1):
         main(n, r)
     logger.info("d = %d" % d)
